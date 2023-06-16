@@ -1,21 +1,42 @@
-import concurrent.futures
-import socket
 import sys
+import socket
+import logging
+import threading
+from multiprocessing import Process
 
-def get_time(address, port):
+
+def kirim_data():
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    logging.warning("membuka socket")
+
+    server_address = ('localhost', 45000)
+    logging.warning(f"opening socket {server_address}")
+    sock.connect(server_address)
+
     try:
-        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client_socket.connect((address, port))
-        request = 'TIME\r\n'
-        client_socket.send(request.encode('utf-8'))
-        response = client_socket.recv(1024).decode('utf-8')
-        print(response)
-        client_socket.close()
-    except socket.error as e:
-        print("Error: ", e)
-        sys.exit()
+        # Send data
+        message = 'TIME\r\n'
+        logging.warning(f"[CLIENT] sending {message}")
+        sock.sendall(message.encode('utf-8'))
+        # Look for the response
+        data = sock.recv(1024).decode('utf-8')
+        logging.warning(f"[DITERIMA DARI SERVER] {data}")
+    finally:
+        logging.warning("closing")
+        sock.close()
+    return
 
-if __name__ == '__main__':
-    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-        for i in range(10):
-            executor.submit(get_time, '172.18.0.2', 45000)
+if __name__=='__main__':
+    # Membuat 5 process untuk mengirim request ke server
+    processes = []
+    for i in range(5):
+        p = Process(target=kirim_data)
+        processes.append(p)
+        p.start()
+    
+    # tampilkan jumlah thread aktif
+    print(f"Total thread yang terpakai: {threading.active_count()}")
+    
+    # Menunggu semua process selesai
+    for p in processes:
+        p.join()

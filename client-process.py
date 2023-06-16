@@ -1,26 +1,39 @@
-import multiprocessing as mp
-import socket
 import sys
+import socket
+import logging
+from multiprocessing import Process
+import time
+import threading
 
-def get_time(address, port):
+def kirim_data():
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    logging.warning("membuka socket")
+
+    server_address = ('localhost', 45000)
+    logging.warning(f"opening socket {server_address}")
+    
+    sock.connect(server_address)
+
     try:
-        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client_socket.connect((address, port))
-        request = 'TIME\r\n'
-        client_socket.send(request.encode('utf-8'))
-        response = client_socket.recv(1024).decode('utf-8')
-        print(response)
-        client_socket.close()
-    except socket.error as e:
-        print("Error: ", e)
-        sys.exit()
+        # Send data
+        message = "TIME\r\n"
+        logging.warning(f"[CLIENT] sending {message}")
+        sock.sendall(message.encode('utf-8'))
+        # Look for the response
+        data = sock.recv(1024).decode('utf-8')
+        logging.warning(f"[DITERIMA DARI SERVER] {data}")
+    finally:
+        logging.warning("closing")
+        sock.close()
+    return
 
-if __name__ == '__main__':
-    processes = []
-    for i in range(10):
-        process = mp.Process(target=get_time, args=('172.18.0.2', 45000))
-        processes.append(process)
-        process.start()
-
-    for process in processes:
-        process.join()
+if __name__=='__main__':
+    threads = []
+    for i in range(5):
+        t = threading.Thread(target=kirim_data)
+        threads.append(t)
+        t.start()
+     # tampilkan jumlah thread aktif
+    print("Total thread terpakai:  ", threading.active_count())
+    for t in threads:
+       t.join()
